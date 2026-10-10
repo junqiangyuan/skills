@@ -1,6 +1,6 @@
 # skills
 
-Cursor / agent skills.
+Cursor / agent skills。仓级规范只此一份：[AGENTS.md](AGENTS.md)（Godex 与 Cloud Agent 共用）。
 
 ## design-interview
 
