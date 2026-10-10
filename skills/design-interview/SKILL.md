@@ -24,7 +24,7 @@ argument-hint: "目标岗位 Target role（可附公司与级别）"
 - 工作区语言跟 `NOTES.md` 的 `Language`。不要默认中文或英文。
 - 每一轮同时写 `./interviews/NNNN-theme.html` 与 `./interviews/NNNN-theme.bank.md`。`./interviews/NNNN-theme.rubric.md` 仅在下面写明的情况下出现。
 - 用下面七个设计要素校准一轮该问多深。不要使用「最近发展区」、zone of proximal development，也不要引入教学课、熟练度、社区智慧之类的框架。目录名是 `./interviews/`。
-- 不写一整套供背诵的标准答案。对话稿写面试官怎么问、答里要出现什么证据、追问怎么分支。
+- 不写一整套供背诵的标准答案。证据标准和追问树仍是出题侧主字段：对话稿写面试官怎么问、答里要出现什么证据、追问怎么分支。每题另附一段短的口语参考答，给候选人当场练着说。它是练习草稿，不是书面满分稿，也不是背诵稿。
 - 只收录用户有权使用的材料与公开高信任源。来路不明的内部题库不写入 `RESOURCES.md`。
 - 换公司或改级别之前先跟用户确认，再改 `MISSION.md`。一个工作区只服务一个目标岗位；另一个岗位换一个目录。
 
@@ -132,6 +132,16 @@ argument-hint: "目标岗位 Target role（可附公司与级别）"
 - **具体问题要能听到：** 描述 → 原因 → 方案 → 可量化效果。
 - **第一印象：** 1–2 个来自简历指标的亮点，不巡礼整份题库。
 
+### 口语参考答
+
+每题必有。写在 bank 该题下的固定小节，并在 HTML 同一题的 `<aside class="spoken">` 里放同一段。给候选人开口练，不出题人拿它打分。
+
+- **像在答。** 用说得出口的句子，连接词可以有。不要公文腔，也不要把证据标准改成条目念出来。
+- **短。** 大约口播 30–90 秒。热身更短，可以不到 30 秒。主攻可以靠近上限，略长一点也可以。不要写成一篇写全的文章。
+- **只写简历里有的。** 事实和数字以 `RESUME.md` 为准，没有的不编。讲不完、留下取舍都可以。不是满分样稿。
+- **标签写明不是背诵稿。** `Language` 为 `zh` 时，bank 小节标题用 `口语参考答（候选人视角 · 非背诵稿）`，HTML 强标签用「口语参考答 · 非背诵稿」。`en` 时 bank 用 `Spoken sketch (candidate side · not a script to memorize)`，HTML 用 “Spoken sketch · not a script to memorize”。`mixed` 跟该题所用语言。
+- **不替代主字段。** 证据标准、追问树照旧写全。口播对不齐证据标准时，改口播或改题，不要把口播写成另一套标准答案。
+
 ### HTML 对话稿
 
 自包含、可打印、无内联样式、无远程资源。`<html lang>` 按语言取 `zh-CN` 或 `en`。样式只链 `../assets/base.css`。类名用下面这套，方便多轮看起来像同一套材料。
@@ -180,6 +190,10 @@ argument-hint: "目标岗位 Target role（可附公司与级别）"
         <li><span>偏了</span> {拉回哪个锚点}</li>
         <li><span>够深</span> {加压一问}</li>
       </ol>
+      <aside class="spoken">
+        <strong>口语参考答 · 非背诵稿</strong>
+        <p>{与 bank 同一段口播。热身更短。只使用简历已有事实和数字。}</p>
+      </aside>
       <p class="cite">依据：<a href="{url}">{标题}</a> · RESUME · MISSION</p>
     </article>
   </section>
@@ -196,7 +210,7 @@ argument-hint: "目标岗位 Target role（可附公司与级别）"
 </html>
 ```
 
-`Language` 为 `en` 时，可见标题用 Target capability、Resume anchor、Job anchor、Difficulty band、Evidence criteria、Follow-up tree、Next-round hook，以及 Warmup / Main / Pressure、Interviewer、Evidence。追问标签用 Shallow / Drifted / Strong enough。`mixed` 时按 `NOTES.md` 里写的哪一部分用哪种语言。准备稿里证据和追问保持可见，方便候选人知道要打到哪里。
+`Language` 为 `en` 时，可见标题用 Target capability、Resume anchor、Job anchor、Difficulty band、Evidence criteria、Follow-up tree、Next-round hook，以及 Warmup / Main / Pressure、Interviewer、Evidence。追问标签用 Shallow / Drifted / Strong enough。口语参考答的强标签用 “Spoken sketch · not a script to memorize”。`mixed` 时按 `NOTES.md` 里写的哪一部分用哪种语言。准备稿里证据和追问保持可见，方便候选人知道要打到哪里。口语参考答放在追问之后，不取代这两项。
 
 ### 题库 `NNNN-theme.bank.md`
 
@@ -223,6 +237,10 @@ argument-hint: "目标岗位 Target role（可附公司与级别）"
   - 偏了:
   - 够深:
 - 依据:
+
+### 口语参考答（候选人视角 · 非背诵稿）
+
+{口播正文，与 HTML 该题 aside 相同。大约 30–90 秒；热身更短。只使用简历已有事实和数字。可以不完整。}
 
 ## 下一轮钩子 next-round hook
 ```
@@ -269,6 +287,9 @@ zh | en | mixed
 - 本轮目标能力在 `RESOURCES.md` 里有本次用得上的来源，或明确只问个人经历
 - 没有一道题的唯一出处是「经常会问」
 - 七个要素在 HTML 与 bank 里都有，且一致
+- 每题 bank 有「口语参考答（候选人视角 · 非背诵稿）」小节（英文轮用对应英文标题），HTML 同题有 `<aside class="spoken">`，两边是同一段
+- 这段是短口播：像现场在答，热身更短，其余大约 30–90 秒；没有简历以外的数字；没有写成条目式范文或满分稿
+- 证据标准与追问树仍在，没有被口语参考答换掉
 - 两个主文件词干相同；没要求校准就没有 rubric
 - 语言与 `NOTES.md` 一致
 - 追问树有拉回分支

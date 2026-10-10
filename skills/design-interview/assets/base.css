@@ -15,6 +15,8 @@
   --pressure: #8f2d2d;
   --listen: #eef4e8;
   --listen-ink: #1e3d24;
+  --spoken: #f7f1e6;
+  --spoken-ink: #3f3426;
 }
 
 * { box-sizing: border-box; }
@@ -34,7 +36,7 @@ main {
   padding: 2.5rem 1.25rem 4rem;
 }
 
-h1, h2, h3, .kicker, .meta, .who, .tag, .followups span, .pill {
+h1, h2, h3, .kicker, .meta, .who, .tag, .followups span, .spoken strong, .pill {
   font-family: "IBM Plex Sans", "PingFang SC", "Noto Sans SC", "Source Han Sans SC", system-ui, sans-serif;
 }
 
@@ -139,6 +141,24 @@ a { color: var(--accent); }
   border-radius: 6px;
 }
 
+.spoken {
+  margin: 0.75rem 0 0.2rem;
+  padding: 0.55rem 0.7rem;
+  background: var(--spoken);
+  color: var(--spoken-ink);
+  border: 1px dashed #e0d3bc;
+  border-radius: 6px;
+}
+
+.spoken strong {
+  display: block;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.25rem;
+}
+
+.spoken p { margin: 0.25rem 0 0; }
+
 .followups { margin: 0.4rem 0 0.2rem 1.1rem; padding: 0; }
 
 .followups li { margin: 0.35rem 0; }
@@ -200,4 +220,5 @@ blockquote {
     background: #fff;
   }
   .listen { background: #f4f7f2; }
+  .spoken { background: #fff; }
 }
