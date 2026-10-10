@@ -1,0 +1,341 @@
+#!/usr/bin/env python3
+"""Check skills/<name>/SKILL.md against repository AGENTS.md.
+
+Checks each skill directory for SKILL.md, frontmatter name and description,
+and plaintext that looks like a personal secret. Human analysis notes under
+docs/ and an oversized SKILL.md are warnings only. Teaching noise and
+"the model already knows this" stay a human review against AGENTS.md.
+"""
+
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+from dataclasses import dataclass, field
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+DEFAULT_ROOT = REPO / "skills"
+MAX_SCAN_BYTES = 1_000_000
+SKILL_LINE_WARN = 500
+DESCRIPTION_MAX = 1024
+NAME_MAX = 64
+
+NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+KEY_RE = re.compile(r"^([A-Za-z0-9_-]+):\s*(.*)$")
+
+TEXT_SUFFIXES = {
+    "",
+    ".md",
+    ".markdown",
+    ".txt",
+    ".html",
+    ".htm",
+    ".css",
+    ".js",
+    ".mjs",
+    ".ts",
+    ".tsx",
+    ".jsx",
+    ".py",
+    ".sh",
+    ".bash",
+    ".yml",
+    ".yaml",
+    ".json",
+    ".toml",
+    ".env",
+    ".example",
+    ".ini",
+    ".cfg",
+}
+
+# Heuristic only. Real keys must not be committed; these shapes match AGENTS.md
+# 禁区「不写个人密钥」. The message redacts the match.
+SECRET_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"-----BEGIN (?:[A-Z0-9]+ )?PRIVATE KEY-----"), "私钥块"),
+    (re.compile(r"\bAKIA[0-9A-Z]{16}\b"), "AWS access key id"),
+    (re.compile(r"\bgh[pousr]_[A-Za-z0-9]{20,}\b"), "GitHub token"),
+    (re.compile(r"\bgithub_pat_[A-Za-z0-9_]{20,}\b"), "GitHub fine-grained PAT"),
+    (re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}"), "Slack token"),
+    (re.compile(r"\bsk-(?:ant-)?[A-Za-z0-9_-]{20,}\b"), "sk- 形态的密钥"),
+    (
+        re.compile(
+            r"(?i)\b(?:api[_-]?key|secret|password|passwd|access[_-]?token|auth[_-]?token)\b"
+            r"\s*[:=]\s*['\"]?[A-Za-z0-9_./+=-]{8,}"
+        ),
+        "密钥赋值",
+    ),
+]
+
+
+@dataclass
+class Report:
+    failures: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+
+
+def rel(path: Path) -> str:
+    resolved = path.resolve()
+    for base in (Path.cwd().resolve(), REPO):
+        try:
+            return resolved.relative_to(base).as_posix()
+        except ValueError:
+            continue
+    return resolved.as_posix()
+
+
+def unquote(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+        return value[1:-1].strip()
+    return value.strip()
+
+
+def split_frontmatter(text: str) -> str | None:
+    text = text.lstrip("\ufeff")
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return None
+    for index in range(1, len(lines)):
+        if lines[index].strip() == "---":
+            return "\n".join(lines[1:index])
+    return None
+
+
+def parse_yaml_map(block: str) -> dict[str, str]:
+    """Parse the small frontmatter subset this repo uses. No PyYAML dependency."""
+    data: dict[str, str] = {}
+    lines = block.splitlines()
+    index = 0
+    while index < len(lines):
+        raw = lines[index]
+        if not raw.strip() or raw.lstrip().startswith("#") or raw[0].isspace():
+            index += 1
+            continue
+        match = KEY_RE.match(raw)
+        if not match:
+            index += 1
+            continue
+        key, rest = match.group(1), match.group(2).strip()
+        if rest in {">", ">-", ">+", "|", "|-", "|+"}:
+            folded = rest.startswith(">")
+            index += 1
+            chunks: list[str] = []
+            while index < len(lines):
+                line = lines[index]
+                if line.strip() == "":
+                    nxt = index + 1
+                    while nxt < len(lines) and lines[nxt].strip() == "":
+                        nxt += 1
+                    if nxt >= len(lines) or (lines[nxt] and not lines[nxt][0].isspace() and KEY_RE.match(lines[nxt])):
+                        break
+                    chunks.append("")
+                    index += 1
+                    continue
+                if not line.startswith((" ", "\t")):
+                    break
+                chunks.append(line.strip())
+                index += 1
+            if folded:
+                data[key] = " ".join(part for part in chunks if part)
+            else:
+                data[key] = "\n".join(chunks).strip()
+            continue
+        data[key] = unquote(rest)
+        index += 1
+    return data
+
+
+def redact(token: str) -> str:
+    token = token.strip()
+    if len(token) <= 8:
+        return "***"
+    return token[:4] + "…" + token[-2:]
+
+
+def collect_skills(root: Path) -> list[Path]:
+    if (root / "SKILL.md").is_file():
+        return [root]
+    return sorted(
+        path for path in root.iterdir() if path.is_dir() and not path.name.startswith(".")
+    )
+
+
+def check_frontmatter(skill: Path, skill_md: Path, report: Report) -> None:
+    try:
+        text = skill_md.read_text(encoding="utf-8")
+    except (UnicodeDecodeError, OSError) as exc:
+        report.failures.append(f"FAIL {rel(skill_md)}: 无法读取 SKILL.md（{exc}）")
+        return
+
+    block = split_frontmatter(text)
+    disp = rel(skill_md)
+    if block is None:
+        report.failures.append(
+            f"FAIL {disp}: frontmatter 缺少 name（AGENTS.md：SKILL.md 必须含 name）"
+        )
+        report.failures.append(
+            f"FAIL {disp}: frontmatter 缺少 description（AGENTS.md：触发边界写在 description）"
+        )
+        return
+
+    data = parse_yaml_map(block)
+    name = data.get("name", "").strip()
+    description = data.get("description", "").strip()
+    if not name:
+        report.failures.append(
+            f"FAIL {disp}: frontmatter 缺少非空 name（AGENTS.md：SKILL.md 必须含 name）"
+        )
+    else:
+        if len(name) > NAME_MAX or NAME_RE.fullmatch(name) is None:
+            report.failures.append(
+                f"FAIL {disp}: frontmatter name「{name}」不符合命名"
+                "（AGENTS.md：小写字母、数字、连字符，最长 64）"
+            )
+        if name != skill.name:
+            report.failures.append(
+                f"FAIL {disp}: frontmatter name「{name}」与目录名「{skill.name}」不一致"
+                "（AGENTS.md：skills/<name>/SKILL.md）"
+            )
+    if not description:
+        report.failures.append(
+            f"FAIL {disp}: frontmatter 缺少非空 description（AGENTS.md：触发边界写在 description）"
+        )
+    elif len(description) > DESCRIPTION_MAX:
+        report.failures.append(
+            f"FAIL {disp}: description 长度为 {len(description)}，超过 {DESCRIPTION_MAX}"
+            "（AGENTS.md）"
+        )
+
+    line_count = len(text.splitlines())
+    if line_count > SKILL_LINE_WARN:
+        report.warnings.append(
+            f"WARN {disp}: SKILL.md 有 {line_count} 行，超过约 {SKILL_LINE_WARN} 行"
+            "（AGENTS.md：宜短；不强制瘦身，不作为失败）"
+        )
+
+
+def check_layout(skill: Path, report: Report) -> bool:
+    skill_md = skill / "SKILL.md"
+    if skill_md.is_file():
+        return True
+    misplaced: list[str] = []
+    for path in skill.rglob("*"):
+        if path.is_file() and not path.is_symlink() and path.name.lower() == "skill.md":
+            misplaced.append(path.relative_to(skill).as_posix())
+    extra = f"；错放的文件：{', '.join(misplaced)}" if misplaced else ""
+    report.failures.append(
+        f"FAIL {rel(skill)}: 缺少 SKILL.md{extra}"
+        "（AGENTS.md 布局：必须是 skills/<name>/SKILL.md）"
+    )
+    return False
+
+
+def scan_secrets(skill: Path, report: Report) -> None:
+    for path in sorted(skill.rglob("*")):
+        if path.is_symlink() or not path.is_file():
+            continue
+        if path.suffix.lower() not in TEXT_SUFFIXES:
+            continue
+        try:
+            if path.stat().st_size > MAX_SCAN_BYTES:
+                continue
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        for lineno, line in enumerate(text.splitlines(), 1):
+            for pattern, label in SECRET_PATTERNS:
+                match = pattern.search(line)
+                if match is None:
+                    continue
+                report.failures.append(
+                    f"FAIL {rel(path)}:{lineno}: 疑似个人密钥明文"
+                    f"（{label}，片段 {redact(match.group(0))}）"
+                    "（AGENTS.md 禁区：不写个人密钥）"
+                )
+                break
+
+
+def warn_human_docs(skill: Path, report: Report) -> None:
+    docs = skill / "docs"
+    if not docs.is_dir():
+        return
+    for path in sorted(docs.rglob("*.md")):
+        if path.is_symlink() or not path.is_file():
+            continue
+        report.warnings.append(
+            f"WARN {rel(path)}: 人类分析长文不是 skill 必跑内容"
+            "（AGENTS.md：不要挂进 skill 目录）；不作为失败"
+        )
+
+
+def check_skill(skill: Path) -> Report:
+    report = Report()
+    if check_layout(skill, report):
+        check_frontmatter(skill, skill / "SKILL.md", report)
+    scan_secrets(skill, report)
+    warn_human_docs(skill, report)
+    return report
+
+
+def _noun(count: int, singular: str, plural: str) -> str:
+    return f"{count} {singular if count == 1 else plural}"
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="对照 AGENTS.md 检查 skill 目录结构、frontmatter 与个人密钥形态明文。",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=(
+            "示例：\n"
+            "  scripts/verify-skills\n"
+            "  scripts/verify-skills --root scripts/fixtures/missing-description\n"
+            "  scripts/verify-skills --root scripts/fixtures/wrong-layout\n"
+            "\n"
+            "默认只扫 <repo>/skills。scripts/fixtures 不是 skill，不会被默认扫描读到。"
+        ),
+    )
+    parser.add_argument(
+        "--root",
+        type=Path,
+        default=None,
+        help="检查根目录。默认 <repo>/skills。该目录自身含 SKILL.md 时只检查这一份，否则检查每个子目录。",
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    root = (args.root if args.root is not None else DEFAULT_ROOT).resolve()
+    if not root.is_dir():
+        print(f"FAIL {root}: 不是目录，无法检查 skill", file=sys.stderr)
+        return 2
+
+    skills = collect_skills(root)
+    reports = [(skill, check_skill(skill)) for skill in skills]
+    failures = 0
+    warnings = 0
+    for skill, report in reports:
+        if report.failures:
+            for line in report.failures:
+                print(line)
+            failures += len(report.failures)
+        else:
+            print(f"OK   {rel(skill)}")
+        for line in report.warnings:
+            print(line)
+        warnings += len(report.warnings)
+
+    status = "pass" if failures == 0 else "fail"
+    print(
+        "verify-skills: "
+        f"{status} ({_noun(len(reports), 'skill', 'skills')}, "
+        f"{_noun(failures, 'failure', 'failures')}, "
+        f"{_noun(warnings, 'warning', 'warnings')})"
+    )
+    return 0 if failures == 0 else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -40,9 +40,29 @@ description: >-
 - **不抄教学噪音。** 不把教程腔、概念科普写进 skill。
 - **模型已会的不进 Skill。** 模型已经知道的 API、常规写法和通用知识不要写进来。
 
+## 检查
+
+在仓库根目录运行（CI 可选，本地跑通即可）：
+
+```bash
+./scripts/verify-skills
+```
+
+脚本检查 `skills/*`：每个目录有 `SKILL.md`；frontmatter 有非空 `name` 与 `description`；启发式扫描个人密钥形态明文。失败时打印路径和原因。教学噪音和「模型已会」不在正则里，合入时仍对照上面的禁区人眼看。
+
+`scripts/fixtures/` 是故意写坏的样例，**不是** skill，默认扫描不会读到。下面两条应失败：
+
+```bash
+./scripts/verify-skills --root scripts/fixtures/missing-description
+./scripts/verify-skills --root scripts/fixtures/wrong-layout
+./scripts/verify-skills --root scripts/fixtures/secret-plaintext
+```
+
+skill 目录里的 `docs/*.md`（当前是 `skills/design-interview/docs/issue-3-analysis.md`）不是必跑内容。脚本只警告，不失败。`SKILL.md` 超过约 500 行同样只警告，不强制瘦身。
+
 ## PR / 合入验收
 
-验收**不只看 diff**。合入前对照本文件，并核对下面的已知全局债。禁区里脚本扫不到的部分（教学噪音、模型已会的内容）靠人眼对照本节，不能只看改动行。
+验收**不只看 diff**。合入前对照本文件，并核对下面的已知全局债。先跑 `./scripts/verify-skills`。禁区里脚本扫不到的部分（教学噪音、模型已会的内容）靠人眼对照本节，不能只看改动行。
 
 ### 已知全局债
 
