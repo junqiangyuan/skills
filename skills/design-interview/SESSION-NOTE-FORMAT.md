@@ -2,7 +2,7 @@
 
 Session notes 在 `./session-notes/`。文件名与那一轮相同：`0001-theme.md`。岗位或级别变更没有对应面试稿时，用下一个编号加 `-mission-update`：`0002-mission-update.md`。
 
-`./session-notes/` 与 `./interviews/` 相对面试工作区根，位置按 `SKILL.md` 的「工作区选择」确定，不一定是调用目录。笔记内的链接相对本笔记所在目录，所以链接面试稿和题库仍用 `../interviews/`。
+`./session-notes/` 与 `./interviews/` 相对面试工作区根，位置按 `SKILL.md` 的「工作区选择」确定，不一定是调用目录。笔记内的链接相对本笔记所在目录，所以链接面试稿及存在时的可选题库仍用 `../interviews/`。
 
 它们驱动下一轮是补洞还是换主题。不是日记，也不记录「学过了什么概念」。
 
@@ -14,7 +14,6 @@ Session notes 在 `./session-notes/`。文件名与那一轮相同：`0001-theme
 - 状态: designed | practiced
 - 日期: {YYYY-MM-DD}
 - 面试稿: [interviews/0001-theme.html](../interviews/0001-theme.html)
-- 题库: [interviews/0001-theme.bank.md](../interviews/0001-theme.bank.md)
 
 ## 问了什么
 - Q1 {一句话}
@@ -30,14 +29,16 @@ Session notes 在 `./session-notes/`。文件名与那一轮相同：`0001-theme
 - {已经稳、可以再探一步的点}
 
 ## 下一轮钩子
-{一句话。与面试稿、题库里的钩子相同。}
+{一句话。与 HTML 面试稿里的钩子相同；题库存在时也同步。}
 ```
+
+仅当用户显式要求题库 / bank 且已生成对应文件时，在笔记中追加 `- 题库: [interviews/0001-theme.bank.md](../interviews/0001-theme.bank.md)`。默认只链接 HTML 面试稿。
 
 同一轮再次对练，在文件末尾追加：
 
 ```md
 ## 再练 · {YYYY-MM-DD}
-{相对上次，证据标准上变了什么。需要的话改写文末钩子，并同步 html 与 bank。}
+{相对上次，证据标准上变了什么。需要的话改写文末钩子，并同步 HTML；题库存在时也同步。}
 ```
 
 ## 英文标题
@@ -47,7 +48,7 @@ Session notes 在 `./session-notes/`。文件名与那一轮相同：`0001-theme
 ## 规则
 
 - **一轮一条主笔记。** 再练不新开编号。
-- **钩子只有一句，并且三处一致：** 本笔记、HTML 文末、bank 文末。
+- **钩子只有一句，并且一致：** 默认是本笔记与 HTML 文末；bank 存在时，其文末也一致。
 - **未对练不要虚构表现。** 状态写 `designed`，答得如何写「只设计，未作答」。
 - **重心偏了就写出来。** 一句即可，例如「主攻滑向通用缓存题，岗位锚点没覆盖到」。这会触发下一轮考虑写 rubric。
 - **使命变更笔记**只记确认过的变化、原因，以及哪些旧题因此作废。不在这条笔记里出新题。

@@ -2,7 +2,8 @@
 name: design-interview
 description: >-
   在独立工作区里按目标岗位与简历设计多轮、多主题的候选人侧模拟面试。设计前核对高信任资料，缺来源则检索写入
-  RESOURCES.md，或记明缺口改问经历，再成对写出 HTML 对话稿与题库；不把模型记忆里的经典面试题当依据。语言以
+  RESOURCES.md，或记明缺口改问经历；默认交付 HTML interview pack，仅当用户显式要求题库 / bank 时另写题库。
+  不把模型记忆里的经典面试题当依据。语言以
   NOTES.md 为准。Use when the user asks to design, continue, or practice a
   candidate-side mock interview for a target role.
 disable-model-invocation: true
@@ -11,7 +12,7 @@ argument-hint: "目标岗位 Target role（可附公司与级别）"
 
 # design-interview
 
-在一个可持久化的**面试设计工作区**里，按目标岗位和候选人简历设计多轮、多主题的模拟面试。每一轮的产出单位是一套 interview pack：可打印的对话稿，加上同编号的题库。必做范围是候选人侧准备；评分表只用于重心校准，默认不写。
+在一个可持久化的**面试设计工作区**里，按目标岗位和候选人简历设计多轮、多主题的模拟面试。每一轮的 interview pack 默认只交付可打印的 HTML 对话稿，题干、证据标准、追问和口语参考答都保留在 HTML 内；仅当用户显式要求题库 / bank 时另写同编号题库。必做范围是候选人侧准备；评分表只用于重心校准，默认不写。
 
 斜杠命令后面的文字是目标岗位。例如：`/design-interview 平台后端 · 中级`。
 
@@ -19,10 +20,11 @@ argument-hint: "目标岗位 Target role（可附公司与级别）"
 
 - 工作区文件只写在选定的**面试工作区根**，不一定是调用目录。按下面「工作区选择」分支确定位置。`*-FORMAT.md` 与本文件同目录，只用来读格式。不要把面试文件写进技能安装目录或本技能仓库。
 - 当前目录能看到 `skills/design-interview/SKILL.md` 时，停下来，请用户换目录。不要在技能仓库里默认建面试目录；显式路径落在本技能仓库内也拒绝写入。
-- 设计任何一轮之前，先检查本轮来源；缺来源则检索，把打开并采用的高信任 URL 写入 `RESOURCES.md`。检索失败写缺口，可以改问经历。已有来源够本轮使用、或已决定只问经历时，进入设计。模型记忆里的「经典面试题」不是来源。
+- 设计任何一轮之前，先检查本轮来源；缺来源时只做一轮检索，把打开并采用的高信任 URL 写入 `RESOURCES.md`。检索失败写缺口，可以改问经历。已有来源够本轮使用、或已决定只问经历时，进入设计。设计中不再开启检索或多轮中途校验；内容完成后只做一次最终自检。模型记忆里的「经典面试题」不是来源。
 - 每道题都要过下面的出题闸门。对不上岗位、又对不上简历、也没有资料来源的题删掉。
 - 工作区语言跟 `NOTES.md` 的 `Language`。不要默认中文或英文。
-- 每一轮同时写 `./interviews/NNNN-theme.html` 与 `./interviews/NNNN-theme.bank.md`。`./interviews/NNNN-theme.rubric.md` 仅在下面写明的情况下出现。
+- 每一轮默认只写 `./interviews/NNNN-theme.html`；仅当用户显式要求题库 / bank 时才另写 `./interviews/NNNN-theme.bank.md`。每题口语参考答写在 HTML 的 `<aside class="spoken">`。`./interviews/NNNN-theme.rubric.md` 默认不写，仅在下面写明的校准条件下出现。
+- 需要跨会话交接时直接写 GitHub Issue，不落本地临时 handoff 文档。不写临时校验或草稿文件；`MISSION.md`、`RESUME.md`、`RESOURCES.md`、`NOTES.md` 和 session notes 等支撑文件仍可按需写入。
 - 用下面七个设计要素校准一轮该问多深。不要使用「最近发展区」、zone of proximal development，也不要引入教学课、熟练度、社区智慧之类的框架。目录名是 `./interviews/`。
 - 不写一整套供背诵的标准答案。证据标准和追问树仍是出题侧主字段：对话稿写面试官怎么问、答里要出现什么证据、追问怎么分支。每题另附一段短的口语参考答，给候选人当场练着说。它是练习草稿，不是书面满分稿，也不是背诵稿。
 - 只收录用户有权使用的材料与公开高信任源。来路不明的内部题库不写入 `RESOURCES.md`。
@@ -56,13 +58,13 @@ argument-hint: "目标岗位 Target role（可附公司与级别）"
 | `RESUME.md` | 简历结构化摘要。出题必须对照 | [RESUME-FORMAT.md](./RESUME-FORMAT.md) |
 | `NOTES.md` | 语言、时长、题型偏好 | 见下文 |
 | `./interviews/NNNN-theme.html` | 一轮主题的可打印对话稿 | 见「单轮产出」 |
-| `./interviews/NNNN-theme.bank.md` | 同一轮的题库 | 见「单轮产出」 |
+| `./interviews/NNNN-theme.bank.md` | 可选。仅当用户显式要求题库 / bank 时写 | 见「单轮产出」 |
 | `./interviews/NNNN-theme.rubric.md` | 可选。评分与重心校准 | [RUBRIC-FORMAT.md](./RUBRIC-FORMAT.md) |
 | `./session-notes/NNNN-theme.md` | 这一轮问了什么、答得如何、下一轮钩子 | [SESSION-NOTE-FORMAT.md](./SESSION-NOTE-FORMAT.md) |
 | `./reference/*.html` | 跨轮复用的压缩速查 | 见「参考文档」 |
 | `./assets/` | 共用样式与以后会复用的小组件 | 见「资产」 |
 
-`NNNN` 是四位递增编号，从 `0001` 起。词干匹配 `^[0-9]{4}-[a-z0-9]+(?:-[a-z0-9]+)*$`，编号后面是 ASCII 小写 kebab-case 的主题。中文主题把中文标题写在文件里面，slug 用短英文，例如 `0001-mcp-auth`。同一轮的 html、bank、可选 rubric、session note 共用这个词干。编号只增不复用。
+`NNNN` 是四位递增编号，从 `0001` 起。词干匹配 `^[0-9]{4}-[a-z0-9]+(?:-[a-z0-9]+)*$`，编号后面是 ASCII 小写 kebab-case 的主题。中文主题把中文标题写在文件里面，slug 用短英文，例如 `0001-mcp-auth`。同一轮必须写 html 和 session note；bank、rubric 在触发时才写，存在的文件共用这个词干。编号只增不复用。
 
 ## 每次怎么跑
 
@@ -74,8 +76,8 @@ argument-hint: "目标岗位 Target role（可附公司与级别）"
 2. 用用户正在使用的语言核对缺口。必要澄清见下节，只问依赖事实；目标岗位已在命令参数里则不重复问。公司、级别、完整 JD、动机、时长、权重、排除题型按「可降级」处理，不等整包补齐。
 3. 把语言、时长、主攻偏好的已知值或假设写入 `NOTES.md`，按下节规则处理。中英混杂且未指定语言时，面试稿正文先不写，其他独立产物继续。
 4. 按格式写 `MISSION.md` 与 `RESUME.md`。简历里没出现的数字不要编；`Resume source`、确认状态和多版本处理见 [RESUME-FORMAT.md](./RESUME-FORMAT.md)。先整理无争议内容，冲突只放「不确定」。
-5. 按 [RESOURCES-FORMAT.md](./RESOURCES-FORMAT.md) 检索并写 `RESOURCES.md`。检索没跑成时，只写缺口，不出技术事实题。达到检索停止线就进入设计。
-6. 用户这次就是要设计或准备一轮，且岗位与简历已经够用：写出 `0001`，完成下面的准备交付。必要确认挡住部分题时，先交出独立完成项。用户只想搭工作区：写完上面的文件后停，并提议一个主题。
+5. 按 [RESOURCES-FORMAT.md](./RESOURCES-FORMAT.md) 核对已有来源；缺来源时只做一轮检索并写 `RESOURCES.md`。检索没跑成时，只写缺口，不出技术事实题。达到检索停止线就进入设计，不在设计中重开检索。
+6. 用户这次就是要设计或准备一轮，且岗位与简历已经够用：默认写出 `0001` 的 HTML 和 session note，完成下面的准备交付；仅当用户显式要求题库 / bank 时另写 bank。必要确认挡住部分题时，先交出独立完成项。用户只想搭工作区：写完上面的文件后停，并提议一个主题。
 
 ### 够用、必要澄清与可降级
 
@@ -109,19 +111,19 @@ argument-hint: "目标岗位 Target role（可附公司与级别）"
 
 - **已完成：** 独立子目录（若需要）、已采用来源或明确缺口、无争议简历锚点、已记下的假设。列出文件路径；未能落盘的已采用 URL 至少列在这里。
 - **待确认：** 实质岗位歧义、影响本轮的事实冲突、覆盖或改公司/级别；若缺语言、简历或安全写入目录，也列在这里。每项只问该事实。
-- **未完成：** 被确认挡住的题、尚未成对的 html/bank、尚未写的 session note。明确是哪项确认挡住，不把可降级项列成阻塞。
+- **未完成：** 被确认挡住的题、尚未写的 HTML、尚未写的 session note；仅当用户显式要求题库 / bank 时才列尚未写的 bank。明确是哪项确认挡住，不把可降级项列成阻塞。
 
 已打开并采用的 URL 必须写入 `RESOURCES.md`，或至少出现在回复的已完成清单。检索失败写缺口，不用记忆填技术事实。
 
-准备任务不被必要澄清挡住时，完成线是成对的 `NNNN-theme.html` 与 `NNNN-theme.bank.md`、对应 session note、`RESOURCES.md` 有本轮来源或写明缺口，并完成现行「自检」。回复给出这些路径及自检结果。只设计时 session note 写 `designed` 和「只设计，未作答」，不评分。
+准备任务不被必要澄清挡住时，默认完成线是 `NNNN-theme.html`、对应 session note、`RESOURCES.md` 有本轮来源或写明缺口，并在内容完成后做一次最终「自检」。用户显式要求题库 / bank 时，完成线再加对应 bank。回复给出实际写出的文件路径及自检结果。只设计时 session note 写 `designed` 和「只设计，未作答」，不评分。
 
 ### 每一轮
 
 1. 从 `MISSION.md` 里尚未被 session notes 覆盖的要点、简历里的缺口、以及上一轮的下一轮钩子，选定**一个**主题。
-2. 若 `RESOURCES.md` 还没有这条目标能力的高信任源，先搜再写。目标能力已有采用的来源，或已决定改问经历时，就进入设计，不为低增量页面继续检索。
-3. 过出题闸门，然后成对写出 html 与 bank。
+2. 若 `RESOURCES.md` 还没有这条目标能力的高信任源，只做一轮检索并写入来源或缺口；首次流程已检索过，不重复检索。目标能力已有采用的来源，或已决定改问经历时，就进入设计，不为低增量页面继续检索。
+3. 过出题闸门，然后写出 HTML；仅当用户显式要求题库 / bank 时另写 bank，并与 HTML 保持同步。设计中不做多轮中途校验。
 4. 对话稿链到已有的面试稿和 `./reference/`（相对路径）。
-5. 告诉用户两个文件的路径、本轮主题、以及下一轮钩子。不要在对话里复述整份题库。当前环境能打开本地文件时，可以打开 HTML；不能打开就把路径给用户。
+5. 写对应 session note，内容完成后做一次最终自检。告诉用户 HTML 与 session note 的路径、本轮主题、以及下一轮钩子；bank 仅在实际写出时给路径。不要在对话里复述整份材料。当前环境能打开本地文件时，可以打开 HTML；不能打开就把路径给用户。
 
 岗位画像决定主题权重。Agent / FDE 一类岗位优先编排、鉴权、评测、工程判断；纯算法只在 `MISSION.md` 或 `NOTES.md` 要求时才成为一轮。不要把 LeetCode 式题单当成默认循环。
 
@@ -143,11 +145,11 @@ argument-hint: "目标岗位 Target role（可附公司与级别）"
 
 1. **岗位锚点。** 它覆盖 `MISSION.md` 哪一条 JD 要点？JD 缺失且已改问经历时，指向明确目标岗位下的本轮经历主题，并在 `MISSION.md` 记明 JD 缺口。参考岗位画像要保留标签，不当成目标公司要求。对不上就删。
 2. **简历锚点。** 它挖 `RESUME.md` 的哪一段？对不上、又确实是 JD 要求而简历没写的，难度档标成加压，不要写成候选人已经做过。
-3. **资料锚点。** 追问里的技术事实由 `RESOURCES.md` 的哪一条支撑？没有就先搜。搜不到就把题改成只问候选人自己的经历，不补模型记得的知识点。
+3. **资料锚点。** 追问里的技术事实由 `RESOURCES.md` 的哪一条支撑？缺来源在设计前的一轮检索中处理；设计时仍没有来源，就记缺口，把题改成只问候选人自己的经历，或删掉无来源的技术事实题，不重开检索，不补模型记得的知识点。
 
 只问候选人自身经历、且不引入外部技术事实的开场，可以没有第 3 条，但必须有简历锚点。
 
-本轮目标能力已有采用的来源，或已经决定改问经历，就进入设计，不再为低增量页面继续检索。
+**检索停止线：** 本轮目标能力已有采用的来源，或已经决定改问经历，就进入设计，不再为低增量页面继续检索。
 
 两份来源不一致时，两份都引用，把追问放在这个取舍上。不要靠记忆选边。
 
@@ -155,7 +157,7 @@ argument-hint: "目标岗位 Target role（可附公司与级别）"
 
 ## 校准带
 
-每一轮在对话稿和题库里都写明这七项。整轮落在简历撑得住、又向外探一点的中间带：热身确认锚点是真的，主攻打目标能力，加压只探一步（一个失败模式、一个简历里该有的数字、或一条还没讲过的 JD 约束）。
+每一轮在 HTML 对话稿里写明这七项；用户显式要求题库 / bank 时，题库也保留这七项并与 HTML 一致。整轮落在简历撑得住、又向外探一点的中间带：热身确认锚点是真的，主攻打目标能力，加压只探一步（一个失败模式、一个简历里该有的数字、或一条还没讲过的 JD 约束）。
 
 | 要素 | 英文 | 怎么定 |
 | --- | --- | --- |
@@ -182,12 +184,12 @@ argument-hint: "目标岗位 Target role（可附公司与级别）"
 
 ### 口语参考答
 
-每题必有。写在 bank 该题下的固定小节，并在 HTML 同一题的 `<aside class="spoken">` 里放同一段。给候选人开口练，不出题人拿它打分。
+每题必有，主位置是 HTML 该题的 `<aside class="spoken">`。仅在用户显式要求题库 / bank 且另写 bank 时，才在 bank 该题下的固定小节放同一段。给候选人开口练，不出题人拿它打分。
 
 - **像在答。** 用说得出口的句子，连接词可以有。不要公文腔，也不要把证据标准改成条目念出来。
 - **短。** 大约口播 30–90 秒。热身更短，可以不到 30 秒。主攻可以靠近上限，略长一点也可以。不要写成一篇写全的文章。
 - **只写简历里有的。** 事实和数字以 `RESUME.md` 为准，没有的不编。讲不完、留下取舍都可以。不是满分样稿。
-- **标签写明不是背诵稿。** `Language` 为 `zh` 时，bank 小节标题用 `口语参考答（候选人视角 · 非背诵稿）`，HTML 强标签用「口语参考答 · 非背诵稿」。`en` 时 bank 用 `Spoken sketch (candidate side · not a script to memorize)`，HTML 用 “Spoken sketch · not a script to memorize”。`mixed` 跟该题所用语言。
+- **标签写明不是背诵稿。** `Language` 为 `zh` 时，HTML 强标签用「口语参考答 · 非背诵稿」；`en` 时用 “Spoken sketch · not a script to memorize”。仅在另写 bank 时，bank 小节标题分别用 `口语参考答（候选人视角 · 非背诵稿）` 或 `Spoken sketch (candidate side · not a script to memorize)`。`mixed` 跟该题所用语言。
 - **不替代主字段。** 证据标准、追问树照旧写全。口播对不齐证据标准时，改口播或改题，不要把口播写成另一套标准答案。
 
 ### HTML 对话稿
@@ -240,12 +242,12 @@ argument-hint: "目标岗位 Target role（可附公司与级别）"
       </ol>
       <aside class="spoken">
         <strong>口语参考答 · 非背诵稿</strong>
-        <p>{与 bank 同一段口播。热身更短。只使用简历已有事实和数字。}</p>
+        <p>{候选人口播。热身更短。只使用简历已有事实和数字。}</p>
       </aside>
       <p class="cite">依据：<a href="{url}">{标题}</a> · RESUME · MISSION</p>
     </article>
   </section>
-  <!-- band-main、band-pressure 同样结构。题号 q1、q2… 与 bank 一致 -->
+  <!-- band-main、band-pressure 同样结构。题号 q1、q2…；另写 bank 时与其题号一致 -->
   <section class="sources">
     <h2>依据</h2>
     <ul>
@@ -260,9 +262,9 @@ argument-hint: "目标岗位 Target role（可附公司与级别）"
 
 `Language` 为 `en` 时，可见标题用 Target capability、Resume anchor、Job anchor、Difficulty band、Evidence criteria、Follow-up tree、Next-round hook，以及 Warmup / Main / Pressure、Interviewer、Evidence。追问标签用 Shallow / Drifted / Strong enough。口语参考答的强标签用 “Spoken sketch · not a script to memorize”。`mixed` 时按 `NOTES.md` 里写的哪一部分用哪种语言。准备稿里证据和追问保持可见，方便候选人知道要打到哪里。口语参考答放在追问之后，不取代这两项。
 
-### 题库 `NNNN-theme.bank.md`
+### 可选题库 `NNNN-theme.bank.md`
 
-与 HTML 题号、顺序、锚点一致。改一边时同步另一边。
+仅当用户显式要求题库 / bank 时写，默认不生成。HTML 是默认内容主位置；另写题库时，与 HTML 题号、顺序、锚点、七个校准要素、证据标准、追问树、口语参考答和下一轮钩子一致。改一边时同步另一边。
 
 ```md
 # 0001 · {主题}
@@ -330,15 +332,16 @@ zh | en | mixed
 
 ## 自检
 
-保存前核对：
+HTML、session note 及本轮来源或缺口等内容完成后，只做一次最终自检，不做多轮中途校验：
 
-- 本轮目标能力在 `RESOURCES.md` 里有本次用得上的来源，或明确只问个人经历
+- 本轮目标能力在 `RESOURCES.md` 里有本次用得上的来源，或写明缺口、明确只问个人经历；HTML 的来源与岗位、简历锚点能对应
 - 没有一道题的唯一出处是「经常会问」
-- 七个要素在 HTML 与 bank 里都有，且一致
-- 每题 bank 有「口语参考答（候选人视角 · 非背诵稿）」小节（英文轮用对应英文标题），HTML 同题有 `<aside class="spoken">`，两边是同一段
+- 七个校准要素在 HTML 里都有
+- HTML 每题有 `<aside class="spoken">`，并用对应语言标明不是背诵稿
 - 这段是短口播：像现场在答，热身更短，其余大约 30–90 秒；没有简历以外的数字；没有写成条目式范文或满分稿
-- 证据标准与追问树仍在，没有被口语参考答换掉
-- 两个主文件词干相同；没要求校准就没有 rubric
+- HTML 每题的证据标准与追问树仍在，没有被口语参考答换掉
+- HTML 与 session note 词干相同；未触发「评分表」的请求或校准条件就没有 rubric
 - 语言与 `NOTES.md` 一致
 - 追问树有拉回分支
-- session note 里有下一轮钩子；没对练就标明只设计、未作答
+- session note 里有下一轮钩子，与 HTML 一致；没对练就写 `designed` 和「只设计，未作答」，不评分
+- 默认没有 bank 或临时文件；仅当用户显式要求题库 / bank 时，另核对 bank 与 HTML 的词干、题号、顺序、锚点、七个校准要素、证据标准、追问树、口语参考答和钩子同步
