@@ -2,6 +2,8 @@
 
 Session notes 在 `./session-notes/`。文件名与那一轮相同：`0001-theme.md`。岗位或级别变更没有对应面试稿时，用下一个编号加 `-mission-update`：`0002-mission-update.md`。
 
+`./session-notes/` 与 `./interviews/` 相对面试工作区根，位置按 `SKILL.md` 的「工作区选择」确定，不一定是调用目录。笔记内的链接相对本笔记所在目录，所以链接面试稿和题库仍用 `../interviews/`。
+
 它们驱动下一轮是补洞还是换主题。不是日记，也不记录「学过了什么概念」。
 
 ## 模板
