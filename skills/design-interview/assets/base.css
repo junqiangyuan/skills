@@ -1,0 +1,203 @@
+/* Starter stylesheet for design-interview packs.
+   Copy into the workspace as ./assets/base.css.
+   Interview HTML lives in ./interviews/ and links this file as ../assets/base.css.
+   Extend this file when a later round needs the same component. */
+
+:root {
+  --bg: #f6f4ef;
+  --ink: #1c1915;
+  --muted: #5e584e;
+  --line: #e0d9cc;
+  --card: #fffdf8;
+  --accent: #0b5fff;
+  --warmup: #8a5a12;
+  --main: #0b4fbf;
+  --pressure: #8f2d2d;
+  --listen: #eef4e8;
+  --listen-ink: #1e3d24;
+}
+
+* { box-sizing: border-box; }
+
+html { font-size: 17px; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+  font: 1rem/1.55 "Iowan Old Style", Palatino, "Palatino Linotype", "Songti SC", "Noto Serif SC", serif;
+}
+
+main {
+  max-width: 42rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+
+h1, h2, h3, .kicker, .meta, .who, .tag, .followups span, .pill {
+  font-family: "IBM Plex Sans", "PingFang SC", "Noto Sans SC", "Source Han Sans SC", system-ui, sans-serif;
+}
+
+h1 {
+  font-size: 1.85rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0.15rem 0 0.4rem;
+}
+
+h2 {
+  font-size: 1.05rem;
+  margin: 2rem 0 0.75rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid var(--line);
+}
+
+h3 { font-size: 1rem; margin: 1.25rem 0 0.4rem; }
+
+p { margin: 0.45rem 0; }
+
+a { color: var(--accent); }
+
+.kicker {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.meta, .read-first { color: var(--muted); }
+
+.highlights, .calibration, .turn, .sources, .hook {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.highlights, .calibration, .sources {
+  padding: 0.9rem 1rem 1rem;
+}
+
+.highlights h2, .calibration h2, .sources h2 {
+  margin-top: 0;
+}
+
+.highlights ul, .sources ul { margin: 0.2rem 0 0 1.1rem; padding: 0; }
+
+.calibration dl { margin: 0; }
+
+.calibration dt {
+  font-family: "IBM Plex Sans", "PingFang SC", "Noto Sans SC", system-ui, sans-serif;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-top: 0.65rem;
+}
+
+.calibration dd { margin: 0.1rem 0 0; }
+
+.band > h2 { display: flex; align-items: center; gap: 0.5rem; }
+
+.tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  background: var(--card);
+}
+
+.band-warmup .tag { color: var(--warmup); border-color: #ead7b0; }
+.band-main .tag { color: var(--main); border-color: #c9d7f5; }
+.band-pressure .tag { color: var(--pressure); border-color: #f0c9c9; }
+
+.turn {
+  padding: 0.9rem 1rem 1rem;
+  margin: 0.75rem 0;
+  border-left: 3px solid var(--line);
+}
+
+.band-warmup .turn { border-left-color: var(--warmup); }
+.band-main .turn { border-left-color: var(--main); }
+.band-pressure .turn { border-left-color: var(--pressure); }
+
+.who {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.prompt { font-size: 1.08rem; }
+
+.listen {
+  margin: 0.7rem 0;
+  padding: 0.55rem 0.7rem;
+  background: var(--listen);
+  color: var(--listen-ink);
+  border-radius: 6px;
+}
+
+.followups { margin: 0.4rem 0 0.2rem 1.1rem; padding: 0; }
+
+.followups li { margin: 0.35rem 0; }
+
+.followups span {
+  display: inline-block;
+  min-width: 2.5rem;
+  margin-right: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.cite { color: var(--muted); font-size: 0.88rem; }
+
+.hook {
+  margin-top: 1.5rem;
+  padding: 0.8rem 1rem;
+}
+
+code {
+  font-family: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  background: #efeae2;
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card);
+  border: 1px solid var(--line);
+  font-size: 0.92rem;
+}
+
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid var(--line);
+}
+
+th { background: #f0ebe3; font-weight: 600; }
+
+blockquote {
+  margin: 0.8rem 0;
+  padding-left: 0.8rem;
+  border-left: 3px solid var(--line);
+  color: var(--muted);
+}
+
+@media print {
+  html { font-size: 12pt; }
+  body { background: #fff; }
+  main { max-width: none; padding: 0; }
+  a { color: inherit; text-decoration: none; }
+  .highlights, .calibration, .turn, .sources, .hook {
+    break-inside: avoid;
+    background: #fff;
+  }
+  .listen { background: #f4f7f2; }
+}
