@@ -1,0 +1,497 @@
+#!/usr/bin/env python3
+"""Check docs and skills on this repository.
+
+Appropriate to the tree on the default branch (no validate-pack, and
+scripts/verify-skills is not here yet — see PR #10):
+
+- Relative Markdown links resolve to files in the repo. Heading anchors
+  must match a heading. Fenced blocks, inline code, external URLs, and
+  {placeholder} targets are skipped.
+- skills/<name>/SKILL.md has frontmatter name (matches the directory) and
+  a non-empty description of at most 1024 characters.
+- Required sections: each Markdown file has one H1; a skill H1 matches
+  its name; design-interview keeps its spine H2s; *-FORMAT.md has 模板 and 规则.
+"""
+
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+import unicodedata
+from pathlib import Path
+from urllib.parse import unquote as url_unquote
+
+DESCRIPTION_MAX = 1024
+NAME_MAX = 64
+NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+HEADING_RE = re.compile(r"^(#{1,6})[ \t]+(.+?)[ \t]*#*[ \t]*$")
+LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)]*)\)")
+FENCE_RE = re.compile(r"^[ ]{0,3}(`{3,}|~{3,})(.*)$")
+KEY_RE = re.compile(r"^([A-Za-z0-9_-]+):\s*(.*)$")
+
+# Spine of the only skill on the default branch. A skill with no entry
+# still needs an H1 equal to `name` and at least one H2.
+SKILL_REQUIRED_H2: dict[str, tuple[str, ...]] = {
+    "design-interview": (
+        "硬规则",
+        "工作区文件",
+        "每次怎么跑",
+        "单轮产出",
+        "自检",
+    ),
+}
+FORMAT_REQUIRED_H2 = ("模板", "规则")
+
+
+def rel(root: Path, path: Path) -> str:
+    try:
+        return path.resolve().relative_to(root.resolve()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def strip_quotes(value: str) -> str:
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
+        return value[1:-1].strip()
+    return value.strip()
+
+
+def split_frontmatter(text: str) -> tuple[str | None, str]:
+    text = text.lstrip("\ufeff")
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return None, text
+    for index in range(1, len(lines)):
+        if lines[index].strip() == "---":
+            block = "\n".join(lines[1:index])
+            body = "\n".join(lines[index + 1 :])
+            return block, body
+    return None, text
+
+
+def parse_yaml_map(block: str) -> dict[str, str]:
+    """Parse the small frontmatter subset this repo uses. No PyYAML."""
+    data: dict[str, str] = {}
+    lines = block.splitlines()
+    index = 0
+    while index < len(lines):
+        raw = lines[index]
+        if not raw.strip() or raw.lstrip().startswith("#") or raw[0].isspace():
+            index += 1
+            continue
+        match = KEY_RE.match(raw)
+        if not match:
+            index += 1
+            continue
+        key, rest = match.group(1), match.group(2).strip()
+        if rest in {">", ">-", ">+", "|", "|-", "|+"}:
+            folded = rest.startswith(">")
+            index += 1
+            chunks: list[str] = []
+            while index < len(lines):
+                line = lines[index]
+                if line.strip() == "":
+                    nxt = index + 1
+                    while nxt < len(lines) and lines[nxt].strip() == "":
+                        nxt += 1
+                    if nxt >= len(lines) or (
+                        lines[nxt]
+                        and not lines[nxt][0].isspace()
+                        and KEY_RE.match(lines[nxt])
+                    ):
+                        break
+                    chunks.append("")
+                    index += 1
+                    continue
+                if not line.startswith((" ", "\t")):
+                    break
+                chunks.append(line.strip())
+                index += 1
+            if folded:
+                parts: list[str] = []
+                for part in chunks:
+                    if part == "":
+                        if parts and parts[-1] != "\n":
+                            parts.append("\n")
+                    else:
+                        if parts and parts[-1] != "\n":
+                            parts.append(" ")
+                        parts.append(part)
+                data[key] = "".join(parts).strip()
+            else:
+                data[key] = "\n".join(chunks).strip()
+            continue
+        data[key] = strip_quotes(rest)
+        index += 1
+    return data
+
+
+def strip_inline_code(line: str) -> str:
+    out: list[str] = []
+    i = 0
+    n = len(line)
+    while i < n:
+        if line[i] != "`":
+            out.append(line[i])
+            i += 1
+            continue
+        j = i
+        while j < n and line[j] == "`":
+            j += 1
+        ticks = line[i:j]
+        closer = j
+        found = -1
+        while closer <= n - len(ticks):
+            if line.startswith(ticks, closer) and (
+                closer + len(ticks) == n or line[closer + len(ticks)] != "`"
+            ):
+                found = closer
+                break
+            closer += 1
+        if found == -1:
+            out.append(line[i])
+            i += 1
+            continue
+        i = found + len(ticks)
+    return "".join(out)
+
+
+def visible_heading(raw: str) -> str:
+    text = raw.strip()
+    text = re.sub(r"[ \t]+#+\s*$", "", text)
+    text = re.sub(r"!\[([^\]]*)\]\([^)]*\)", r"\1", text)
+    text = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", text)
+    text = text.replace("`", "")
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
+    text = re.sub(r"__(.+?)__", r"\1", text)
+    text = re.sub(r"\*(.+?)\*", r"\1", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def github_slug(text: str) -> str:
+    """GitHub-style heading slug: punctuation runs become one hyphen."""
+    lowered = visible_heading(text).lower()
+    out: list[str] = []
+    hyphen = False
+    for ch in lowered:
+        cat = unicodedata.category(ch)
+        if cat.startswith(("L", "N", "M")):
+            out.append(ch)
+            hyphen = False
+            continue
+        if not hyphen:
+            out.append("-")
+            hyphen = True
+    return "".join(out).strip("-")
+
+
+def heading_slugs(lines: list[str]) -> set[str]:
+    slugs: set[str] = set()
+    counts: dict[str, int] = {}
+    for level, text in headings(lines):
+        del level
+        base = github_slug(text)
+        if not base:
+            continue
+        seen = counts.get(base, 0)
+        counts[base] = seen + 1
+        slugs.add(base if seen == 0 else f"{base}-{seen}")
+    return slugs
+
+
+def headings(lines: list[str]) -> list[tuple[int, str]]:
+    found: list[tuple[int, str]] = []
+    fence: str | None = None
+    for line in lines:
+        marker = fence_marker(line)
+        if marker is not None:
+            if fence is None:
+                fence = marker
+            elif line.strip().startswith(fence[0]) and len(marker) >= len(fence):
+                fence = None
+            continue
+        if fence is not None:
+            continue
+        match = HEADING_RE.match(strip_inline_code(line))
+        if match:
+            found.append((len(match.group(1)), visible_heading(match.group(2))))
+    return found
+
+
+def fence_marker(line: str) -> str | None:
+    match = FENCE_RE.match(line)
+    if not match:
+        return None
+    return match.group(1)
+
+
+def prose_lines(lines: list[str]) -> list[tuple[int, str]]:
+    """Return (1-based line number, line with inline code removed) outside fences."""
+    result: list[tuple[int, str]] = []
+    fence: str | None = None
+    for number, line in enumerate(lines, 1):
+        marker = fence_marker(line)
+        if marker is not None:
+            if fence is None:
+                fence = marker
+            elif line.strip().startswith(fence[0]) and len(marker) >= len(fence):
+                fence = None
+            continue
+        if fence is not None:
+            continue
+        result.append((number, strip_inline_code(line)))
+    return result
+
+
+def fence_closed(lines: list[str]) -> bool:
+    fence: str | None = None
+    for line in lines:
+        marker = fence_marker(line)
+        if marker is None:
+            continue
+        if fence is None:
+            fence = marker
+        elif line.strip().startswith(fence[0]) and len(marker) >= len(fence):
+            fence = None
+    return fence is None
+
+
+def markdown_files(root: Path) -> list[Path]:
+    files: list[Path] = []
+    for path in root.rglob("*.md"):
+        if any(part.startswith(".") for part in path.relative_to(root).parts):
+            continue
+        if path.is_file() and not path.is_symlink():
+            files.append(path)
+    return sorted(files)
+
+
+def skill_dirs(root: Path) -> list[Path]:
+    skills = root / "skills"
+    if not skills.is_dir():
+        return []
+    return sorted(
+        path
+        for path in skills.iterdir()
+        if path.is_dir() and not path.name.startswith(".") and not path.is_symlink()
+    )
+
+
+def link_target(raw: str) -> str | None:
+    """Return a local path+fragment, or None when the link is not checked."""
+    dest = raw.strip()
+    if not dest:
+        return None
+    if dest.startswith("<"):
+        end = dest.find(">")
+        if end == -1:
+            return None
+        dest = dest[1:end].strip()
+    else:
+        # [text](url "title") — title is outside angle brackets.
+        if " " in dest:
+            dest = dest.split(None, 1)[0]
+    if not dest or dest.startswith(("#", "?")):
+        if dest.startswith("#"):
+            return dest
+        return None
+    lowered = dest.lower()
+    if lowered.startswith(("http://", "https://", "mailto:", "data:")) or "://" in dest:
+        return None
+    if "{" in dest or "}" in dest:
+        return None
+    return dest
+
+
+def check_links(root: Path, path: Path, lines: list[str], failures: list[str]) -> None:
+    display = rel(root, path)
+    if not fence_closed(lines):
+        failures.append(f"FAIL {display}: unclosed code fence (links inside it are not checked)")
+    slug_cache: dict[Path, set[str]] = {}
+
+    def slugs_for(target: Path) -> set[str]:
+        cached = slug_cache.get(target)
+        if cached is None:
+            text = target.read_text(encoding="utf-8")
+            cached = heading_slugs(text.splitlines())
+            slug_cache[target] = cached
+        return cached
+
+    for number, line in prose_lines(lines):
+        for match in LINK_RE.finditer(line):
+            target = link_target(match.group(1))
+            if target is None:
+                continue
+            fragment = ""
+            path_part = target
+            if target.startswith("#"):
+                fragment = target[1:]
+                path_part = ""
+            elif "#" in target:
+                path_part, fragment = target.split("#", 1)
+            fragment = url_unquote(fragment.split("?", 1)[0])
+            path_part = url_unquote(path_part)
+            if path_part:
+                destination = (path.parent / path_part).resolve()
+                try:
+                    destination.relative_to(root.resolve())
+                except ValueError:
+                    failures.append(
+                        f"FAIL {display}:{number}: relative link `{target}` escapes the repository"
+                    )
+                    continue
+                if not destination.exists():
+                    failures.append(
+                        f"FAIL {display}:{number}: relative link `{target}` does not exist"
+                    )
+                    continue
+                if destination.is_dir():
+                    failures.append(
+                        f"FAIL {display}:{number}: relative link `{target}` points at a directory"
+                    )
+                    continue
+                anchor_file = destination
+            else:
+                anchor_file = path
+            if fragment:
+                if not anchor_file.suffix.lower() == ".md":
+                    continue
+                if fragment not in slugs_for(anchor_file):
+                    failures.append(
+                        f"FAIL {display}:{number}: heading anchor `#{fragment}` "
+                        f"not found in {rel(root, anchor_file)}"
+                    )
+
+
+def check_sections(root: Path, path: Path, lines: list[str], failures: list[str]) -> None:
+    display = rel(root, path)
+    found = headings(lines)
+    h1 = [text for level, text in found if level == 1]
+    if len(h1) != 1:
+        failures.append(
+            f"FAIL {display}: expected one H1, found {len(h1)}"
+        )
+    if path.name.endswith("-FORMAT.md") and path.parent.parent.name == "skills":
+        h2 = {text for level, text in found if level == 2}
+        for section in FORMAT_REQUIRED_H2:
+            if section not in h2:
+                failures.append(f"FAIL {display}: missing required section `## {section}`")
+
+
+def check_skill(root: Path, skill: Path, failures: list[str]) -> None:
+    skill_md = skill / "SKILL.md"
+    display = rel(root, skill)
+    if not skill_md.is_file():
+        failures.append(f"FAIL {display}: missing SKILL.md (expected skills/{skill.name}/SKILL.md)")
+        return
+    try:
+        text = skill_md.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        failures.append(f"FAIL {rel(root, skill_md)}: cannot read SKILL.md ({exc})")
+        return
+    block, body = split_frontmatter(text)
+    md_display = rel(root, skill_md)
+    if block is None:
+        failures.append(f"FAIL {md_display}: missing YAML frontmatter (name and description)")
+        return
+    data = parse_yaml_map(block)
+    name = data.get("name", "").strip()
+    description = data.get("description", "").strip()
+    if not name:
+        failures.append(f"FAIL {md_display}: frontmatter name is missing or empty")
+    else:
+        if len(name) > NAME_MAX or NAME_RE.fullmatch(name) is None:
+            failures.append(
+                f"FAIL {md_display}: frontmatter name `{name}` must be kebab-case, at most {NAME_MAX} characters"
+            )
+        if name != skill.name:
+            failures.append(
+                f"FAIL {md_display}: frontmatter name `{name}` does not match directory `{skill.name}`"
+            )
+    if not description:
+        failures.append(f"FAIL {md_display}: frontmatter description is missing or empty")
+    elif len(description) > DESCRIPTION_MAX:
+        failures.append(
+            f"FAIL {md_display}: description is {len(description)} characters; maximum is {DESCRIPTION_MAX}"
+        )
+    found = headings(body.splitlines())
+    h1 = [text for level, text in found if level == 1]
+    h2 = [text for level, text in found if level == 2]
+    if len(h1) != 1 or (name and h1 != [name]):
+        shown = ", ".join(h1) if h1 else "(none)"
+        expected = f"`{name}`" if name else "the skill name"
+        failures.append(
+            f"FAIL {md_display}: expected a single H1 {expected}, found {shown}"
+        )
+    if not h2:
+        failures.append(f"FAIL {md_display}: missing required body sections (no H2)")
+    for section in SKILL_REQUIRED_H2.get(skill.name, ()):
+        if section not in h2:
+            failures.append(f"FAIL {md_display}: missing required section `## {section}`")
+
+
+def check_repo(root: Path) -> list[str]:
+    failures: list[str] = []
+    root = root.resolve()
+    if not (root / "skills").is_dir():
+        failures.append(f"FAIL {root}: missing skills/ directory")
+        return failures
+    skills = skill_dirs(root)
+    if not skills:
+        failures.append("FAIL skills: no skill directories")
+    for skill in skills:
+        check_skill(root, skill, failures)
+    for path in markdown_files(root):
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError) as exc:
+            failures.append(f"FAIL {rel(root, path)}: cannot read ({exc})")
+            continue
+        lines = text.splitlines()
+        check_links(root, path, lines, failures)
+        if path.name != "SKILL.md":
+            check_sections(root, path, lines, failures)
+    return failures
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Check relative links, skill frontmatter, and required sections."
+    )
+    parser.add_argument(
+        "--root",
+        type=Path,
+        default=None,
+        help="Repository root. Defaults to the parent of this script.",
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    root = (args.root if args.root is not None else Path(__file__).resolve().parent.parent).resolve()
+    if not root.is_dir():
+        print(f"FAIL {root}: not a directory", file=sys.stderr)
+        return 2
+    failures = check_repo(root)
+    for line in failures:
+        print(line)
+    skills = skill_dirs(root)
+    docs = markdown_files(root)
+    status = "pass" if not failures else "fail"
+
+    def noun(count: int, singular: str, plural: str) -> str:
+        return f"{count} {singular if count == 1 else plural}"
+
+    print(
+        "check-docs: "
+        f"{status} ({noun(len(docs), 'markdown file', 'markdown files')}, "
+        f"{noun(len(skills), 'skill', 'skills')}, "
+        f"{noun(len(failures), 'failure', 'failures')})"
+    )
+    return 0 if not failures else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
