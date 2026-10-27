@@ -29,3 +29,7 @@ Cursor / agent skills。仓级规范只此一份：[AGENTS.md](AGENTS.md)（Gode
 ```text
 /design-interview <目标岗位>
 ```
+
+## epistemic-rigor-engine
+
+高风险决策、根因诊断、事实核查和结构化规划时，用 12 个思维补丁强制一手来源、可证伪和篇幅控制。说明见 [`skills/epistemic-rigor-engine/SKILL.md`](skills/epistemic-rigor-engine/SKILL.md)。
